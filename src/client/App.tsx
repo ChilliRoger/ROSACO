@@ -8,7 +8,7 @@ export const App = () => {
       <img className="object-contain w-1/2 max-w-[250px] mx-auto" src="/snoo.png" alt="Snoo" />
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-2xl font-bold text-center text-gray-900 ">
-          {username ? `Hey ${username} hiiii👋Gopal` : ''}
+          {username ? `Hey ${username} 👋Gopal` : ''}
         </h1>
         <p className="text-base text-center text-gray-600 ">
           Edit <span className="bg-[#e5ebee]  px-1 py-0.5 rounded">src/client/App.tsx</span> to get
