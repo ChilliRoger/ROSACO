@@ -1,1 +1,35 @@
 @import 'tailwindcss';
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f0f0f0;
+  margin: 0;
+}
+
+.container {
+  text-align: center;
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 100px);
+  gap: 20px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.color-button {
+  width: 100px;
+  height: 100px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.color-button:active {
+  transform: scale(0.9);
+}

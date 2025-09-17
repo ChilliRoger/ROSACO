@@ -1,200 +1,174 @@
-import { useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
-import meme1 from '../assets/meme1.png';
-import meme2 from '../assets/meme2.png';
-import { Round, Caption } from '../shared/types/api';
+import React, { useState, useEffect } from 'react';
+import './index.css';
 
-type Phase = 'submission' | 'voting' | 'results';
+type Color = 'red' | 'green' | 'blue' | 'yellow';
 
-interface LeaderboardEntry {
-  userId: string;
-  wins: number;
-}
-
-// Sample meme rounds
-const roundsData: Round[] = [
-  { id: '1', memeUrl: meme1, captions: [], status: 'submission' },
-  { id: '2', memeUrl: meme2, captions: [], status: 'submission' },
-];
+const COLORS: Color[] = ['red', 'green', 'blue', 'yellow'];
 
 export const App = () => {
-  const [roundIndex, setRoundIndex] = useState(0);
-  const [round, setRound] = useState<Round>(roundsData[0]!);
-  const [captionText, setCaptionText] = useState('');
-  const [phase, setPhase] = useState<Phase>('submission');
-  const [timeLeft, setTimeLeft] = useState(30); // seconds
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [sequence, setSequence] = useState<Color[]>([]);
+  const [playerSequence, setPlayerSequence] = useState<Color[]>([]);
+  const [round, setRound] = useState(1);
+  const [message, setMessage] = useState('');
+  const [flashingIndex, setFlashingIndex] = useState<number | null>(null);
+  const [playerTurn, setPlayerTurn] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
-  // Timer logic
+  // Start new round
   useEffect(() => {
-    if (phase === 'results') return;
+    if (!gameStarted || playerTurn || gameOver) return;
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          nextPhase();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    let newColor: Color;
 
-    return () => clearInterval(timer);
-  }, [phase]);
+    if (round <= 3) {
+      // Easy: don't allow repeating the same color twice
+      do {
+        newColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+      } while (sequence.length > 0 && newColor === sequence[sequence.length - 1]);
+    } else if (round <= 6) {
+      // Medium: small chance of repeating
+      if (Math.random() < 0.3 && sequence.length > 0) {
+        newColor = sequence[sequence.length - 1];
+      } else {
+        const filtered = COLORS.filter(c => c !== sequence[sequence.length - 1]);
+        newColor = filtered[Math.floor(Math.random() * filtered.length)];
+      }
+    } else {
+      // Hard: fully random (repeats allowed)
+      newColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+    }
 
-  // Add a caption
-  const addCaption = () => {
-    if (!captionText.trim() || phase !== 'submission') return;
+    const newSequence = [...sequence, newColor];
+    setSequence(newSequence);
+    flashSequence(newSequence);
+  }, [round, gameStarted]);
 
-    const newCaption: Caption = {
-      id: Date.now().toString(),
-      text: captionText,
-      votes: 0,
-      userId: 'guest',
-    };
-
-    setRound((prev) => ({ ...prev, captions: [...prev.captions, newCaption] }));
-    setCaptionText('');
+  const flashSequence = async (seq: Color[]) => {
+    setMessage('Watch the sequence!');
+    setPlayerTurn(false);
+    for (let i = 0; i < seq.length; i++) {
+      setFlashingIndex(i);
+      await new Promise((r) => setTimeout(r, 600));
+      setFlashingIndex(null);
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    setMessage('Your turn!');
+    setPlayerSequence([]);
+    setPlayerTurn(true);
   };
 
-  // Vote for a caption
-  const voteCaption = (id: string) => {
-    if (phase !== 'voting') return;
-    setRound((prev) => ({
-      ...prev,
-      captions: prev.captions.map((c) =>
-        c.id === id ? { ...c, votes: c.votes + 1 } : c
-      ),
-    }));
-  };
+  const handleClick = (color: Color) => {
+    if (!playerTurn) return;
+    const newPlayerSeq = [...playerSequence, color];
+    setPlayerSequence(newPlayerSeq);
 
-  // Move to next phase
-  const nextPhase = () => {
-    if (phase === 'submission') {
-      setPhase('voting');
-      setTimeLeft(30);
-    } else if (phase === 'voting') {
-      setPhase('results');
-      announceWinner();
+    const currentIndex = newPlayerSeq.length - 1;
+    if (newPlayerSeq[currentIndex] !== sequence[currentIndex]) {
+      setMessage('❌ Wrong! Game Over.');
+      setPlayerTurn(false);
+      setGameOver(true);
+      return;
+    }
+
+    if (newPlayerSeq.length === sequence.length) {
+      setMessage('✅ Correct! Next round...');
+      setPlayerTurn(false);
+      setTimeout(() => setRound(round + 1), 1000);
     }
   };
 
-  // Announce winner
-  const announceWinner = () => {
-    if (round.captions.length === 0) return;
-
-    const winner = round.captions.reduce((max, c) =>
-      c.votes > max.votes ? c : max
-    );
-
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
-
-    // Update leaderboard
-    setLeaderboard((prev) => {
-      const existing = prev.find((l) => l.userId === winner.userId);
-      if (existing) {
-        return prev.map((l) =>
-          l.userId === winner.userId ? { ...l, wins: l.wins + 1 } : l
-        );
-      } else {
-        return [...prev, { userId: winner.userId, wins: 1 }];
-      }
-    });
-
-    // Auto-move to next round after 5 sec
-    setTimeout(() => {
-      const nextIndex = roundIndex + 1;
-      if (nextIndex < roundsData.length) {
-        setRoundIndex(nextIndex);
-        const nextRound = roundsData[nextIndex];
-        if (nextRound) {
-          setRound(nextRound);
-        }
-        setPhase('submission');
-        setTimeLeft(30);
-      } else {
-        // End of rounds
-        setPhase('submission');
-      }
-    }, 5000);
+  const restartGame = () => {
+    setSequence([]);
+    setPlayerSequence([]);
+    setRound(1);
+    setMessage('');
+    setGameOver(false);
+    setPlayerTurn(false);
+    setGameStarted(false);
+    setCountdown(null);
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6">
-      <h1 className="text-2xl font-bold text-gray-800">🔥 Chaos Caption Clash 🔥</h1>
+  const startGame = () => {
+    setCountdown(3);
+    let timer = 3;
 
-      <img
-        src={round.memeUrl}
-        alt="Meme"
-        className="max-w-sm rounded-xl shadow-md"
-      />
+    const interval = setInterval(() => {
+      timer -= 1;
+      if (timer === 0) {
+        clearInterval(interval);
+        setCountdown(null);
+        setGameStarted(true);
+        setMessage('Watch the sequence!');
+      } else {
+        setCountdown(timer);
+        setMessage(`Starting in ${timer}...`);
+      }
+    }, 1000);
+  };
 
-      <p className="font-bold">
-        {phase === 'submission' && `Submit your caption! ⏰ ${timeLeft}s`}
-        {phase === 'voting' && `Voting phase! ⏰ ${timeLeft}s`}
-        {phase === 'results' && '🏆 Results!'}
-      </p>
+  if (!gameStarted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
+        <h1 className="text-3xl font-bold text-black">🎨 Color Tap Master</h1>
 
-      {phase === 'submission' && (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Write your caption..."
-            value={captionText}
-            onChange={(e) => setCaptionText(e.target.value)}
-            className="px-3 py-2 border rounded-md"
-          />
+        {countdown !== null ? (
+          <p className="text-2xl font-bold text-black">{countdown}</p>
+        ) : (
           <button
-            onClick={addCaption}
-            className="bg-red-600 text-white px-4 py-2 rounded-md"
+            onClick={startGame}
+            className="mt-4 px-6 py-3 bg-green-600 text-white rounded-md text-lg"
           >
-            Submit
+            Start Game
           </button>
-        </div>
-      )}
+        )}
+      </div>
+    );
+  }
 
-      <div className="w-full max-w-md">
-        {round.captions.map((c) => (
-          <div
-            key={c.id}
-            className="flex justify-between items-center p-2 border-b"
-          >
-            <span>{c.text}</span>
-            {phase === 'voting' && (
-              <button
-                onClick={() => voteCaption(c.id)}
-                className="bg-gray-200 px-2 py-1 rounded-md"
-              >
-                👍 {c.votes}
-              </button>
-            )}
-            {phase === 'results' && <span>Votes: {c.votes}</span>}
-          </div>
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
+      <h1 className="text-3xl font-bold text-black">🎨 Color Tap Master</h1>
+      <p className="text-black text-xl">{message}</p>
+
+      <div className="grid grid-cols-2 gap-4 mt-4">
+        {COLORS.map((color) => (
+          <button
+            key={color}
+            onClick={() => handleClick(color)}
+            style={{
+              width: 100,
+              height: 100,
+              backgroundColor: color,
+              boxShadow:
+                flashingIndex !== null && sequence[flashingIndex] === color
+                  ? '0 0 30px 15px white'
+                  : 'none',
+              border: '2px solid black',
+              borderRadius: 12,
+              transition: 'box-shadow 0.2s, transform 0.2s',
+              transform:
+                flashingIndex !== null && sequence[flashingIndex] === color
+                  ? 'scale(1.2)'
+                  : 'scale(1)',
+              cursor: gameOver ? 'not-allowed' : 'pointer',
+            }}
+            disabled={gameOver}
+          />
         ))}
       </div>
 
-      {phase === 'results' && round.captions.length > 0 && (
-        <h2 className="text-xl font-bold text-green-600 mt-4">
-          🏆 WINNER:{" "}
-          {round.captions.reduce((max, c) => (c.votes > max.votes ? c : max))
-            .text}
-        </h2>
-      )}
+      <p className="text-black mt-4 text-lg">Round: {round}</p>
 
-      <div className="mt-6 w-full max-w-md">
-        <h3 className="font-bold">Leaderboard</h3>
-        {leaderboard.map((l) => (
-          <div key={l.userId} className="flex justify-between border-b p-2">
-            <span>{l.userId}</span>
-            <span>Wins: {l.wins}</span>
-          </div>
-        ))}
-      </div>
+      {gameOver && (
+        <button
+          onClick={restartGame}
+          className="mt-4 px-6 py-3 bg-red-600 text-white rounded-md text-lg"
+        >
+          Restart Game
+        </button>
+      )}
     </div>
   );
 };

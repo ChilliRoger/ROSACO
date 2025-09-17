@@ -1,33 +1,35 @@
-// Each caption submitted by a user
 export interface Caption {
-  id: string;           // Unique ID
-  text: string;         // Caption text
-  votes: number;        // Vote count
-  userId: string;       // Who submitted it
+  id: string;
+  text: string;
+  votes: number;
+  userId: string;
 }
 
-// Phase of the round
-export type Phase = 'submission' | 'voting' | 'results';
-
-// Each meme round
 export interface Round {
-  id: string;           // Unique round ID
-  memeUrl: string;      // Meme image URL
-  captions: Caption[];  // List of captions
-  status: Phase;        // Current phase
-  winner?: Caption;     // Winner caption (optional)
-  timeLeft?: number;    // Countdown seconds for UI (optional)
+  id: string;
+  memeUrl: string;
+  captions: Caption[];
+  status: 'submission' | 'voting' | 'results';
 }
 
-// Leaderboard entry for users
-export interface LeaderboardEntry {
-  userId: string;       // User ID
-  wins: number;         // Total wins
+export interface InitResponse {
+  type: 'init';
+  postId: string;
+  round: Round;
+  username: string;
 }
 
-// Full game state (optional, useful for multi-rounds)
-export interface GameState {
-  rounds: Round[];             // All rounds
-  currentRoundIndex: number;   // Current round number
-  leaderboard: LeaderboardEntry[]; // Tracks cumulative wins
+export interface CaptionResponse {
+  type: 'caption';
+  round: Round;
+}
+
+export interface VoteResponse {
+  type: 'vote';
+  round: Round;
+}
+
+export interface NextRoundResponse {
+  type: 'next-round';
+  round: Round;
 }
