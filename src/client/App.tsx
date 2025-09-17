@@ -111,7 +111,7 @@ export const App = () => {
   if (!gameStarted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
-        <h1 className="text-3xl font-bold text-black">🎨 Color Tap Master</h1>
+        <h1 className="text-3xl font-bold text-black">🎨ROSACO</h1>
 
         {countdown !== null ? (
           <p className="text-2xl font-bold text-black">{countdown}</p>
@@ -129,7 +129,7 @@ export const App = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
-      <h1 className="text-3xl font-bold text-black">🎨 Color Tap Master</h1>
+      <h1 className="text-3xl font-bold text-black">🎨ROSACO</h1>
       <p className="text-black text-xl">{message}</p>
 
       <div className="grid grid-cols-2 gap-4 mt-4">
