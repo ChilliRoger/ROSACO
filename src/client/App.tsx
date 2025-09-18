@@ -1,9 +1,49 @@
 import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import './index.css';
 
 type Color = 'red' | 'green' | 'blue' | 'yellow';
 
 const COLORS: Color[] = ['red', 'green', 'blue', 'yellow'];
+
+const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+const colorFrequencies: Record<Color, number> = {
+  red: 261.6,
+  green: 329.6,
+  blue: 392.0,
+  yellow: 523.3,
+};
+
+const playTone = (frequency: number, duration = 300) => {
+  const oscillator = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+  gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  oscillator.start();
+  oscillator.stop(audioCtx.currentTime + duration / 1000);
+};
+
+const playErrorSound = () => {
+  const oscillator = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  oscillator.type = 'sawtooth';
+  oscillator.frequency.setValueAtTime(100, audioCtx.currentTime);
+  gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+  oscillator.start();
+  oscillator.stop(audioCtx.currentTime + 0.6);
+};
 
 export const App = () => {
   const [sequence, setSequence] = useState<Color[]>([]);
@@ -15,20 +55,21 @@ export const App = () => {
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+  const [isNewHighScore, setIsNewHighScore] = useState(false);
 
-  // Start new round
   useEffect(() => {
     if (!gameStarted || playerTurn || gameOver) return;
 
     let newColor: Color;
 
     if (round <= 3) {
-      // Easy: don't allow repeating the same color twice
       do {
         newColor = COLORS[Math.floor(Math.random() * COLORS.length)];
       } while (sequence.length > 0 && newColor === sequence[sequence.length - 1]);
     } else if (round <= 6) {
-      // Medium: small chance of repeating
       if (Math.random() < 0.3 && sequence.length > 0) {
         newColor = sequence[sequence.length - 1];
       } else {
@@ -36,7 +77,6 @@ export const App = () => {
         newColor = filtered[Math.floor(Math.random() * filtered.length)];
       }
     } else {
-      // Hard: fully random (repeats allowed)
       newColor = COLORS[Math.floor(Math.random() * COLORS.length)];
     }
 
@@ -48,12 +88,19 @@ export const App = () => {
   const flashSequence = async (seq: Color[]) => {
     setMessage('Watch the sequence!');
     setPlayerTurn(false);
+
+    // Progressive speed increase
+    let flashDuration = Math.max(200, 600 - round * 30);
+    let pauseDuration = Math.max(100, 200 - round * 10);
+
     for (let i = 0; i < seq.length; i++) {
       setFlashingIndex(i);
-      await new Promise((r) => setTimeout(r, 600));
+      playTone(colorFrequencies[seq[i]]);
+      await new Promise((r) => setTimeout(r, flashDuration));
       setFlashingIndex(null);
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, pauseDuration));
     }
+
     setMessage('Your turn!');
     setPlayerSequence([]);
     setPlayerTurn(true);
@@ -65,15 +112,30 @@ export const App = () => {
     setPlayerSequence(newPlayerSeq);
 
     const currentIndex = newPlayerSeq.length - 1;
+
     if (newPlayerSeq[currentIndex] !== sequence[currentIndex]) {
-      setMessage('❌ Wrong! Game Over.');
+      setMessage(`❌ Game Over! Final Score: ${score}`);
       setPlayerTurn(false);
       setGameOver(true);
+      playErrorSound();
+
+      setHighScore(prev => {
+        if (score > prev) {
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+          setIsNewHighScore(true);
+          return score;
+        }
+        return prev;
+      });
+
       return;
     }
 
+    playTone(colorFrequencies[color]);
+    setScore(prev => prev + 1);
+
     if (newPlayerSeq.length === sequence.length) {
-      setMessage('✅ Correct! Next round...');
+      setMessage('✅Correct! Next round.');
       setPlayerTurn(false);
       setTimeout(() => setRound(round + 1), 1000);
     }
@@ -88,12 +150,13 @@ export const App = () => {
     setPlayerTurn(false);
     setGameStarted(false);
     setCountdown(null);
+    setScore(0);
+    setIsNewHighScore(false);
   };
 
   const startGame = () => {
     setCountdown(3);
     let timer = 3;
-
     const interval = setInterval(() => {
       timer -= 1;
       if (timer === 0) {
@@ -110,7 +173,14 @@ export const App = () => {
 
   if (!gameStarted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white relative">
+        <button
+          onClick={() => setShowGuide(true)}
+          className="absolute top-4 right-4 px-4 py-2 bg-blue-600 text-white rounded-md"
+        >
+          How to Play
+        </button>
+
         <h1 className="text-3xl font-bold text-black">🎨ROSACO</h1>
 
         {countdown !== null ? (
@@ -123,12 +193,54 @@ export const App = () => {
             Start Game
           </button>
         )}
+
+        {showGuide && (
+  <div className="guide-overlay">
+    <div className="guide-box">
+      <h2>How to Play</h2>
+      <ul>
+        <li>👀 Watch the flashing color sequence.</li>
+        <li>🎯 Repeat the sequence by tapping the colors in order.</li>
+        <li>✅ Each correct tap gives +1 point.</li>
+        <li>⚡ Rounds get harder: Easy → Medium → Hard.</li>
+        <li>❌ One mistake ends the game.</li>
+      </ul>
+      <button onClick={() => setShowGuide(false)}>Close</button>
+    </div>
+  </div>
+)}
+
+      </div>
+    );
+  }
+
+  if (gameOver) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
+        <h1 className="text-3xl font-bold text-black">❌ Game Over!</h1>
+        <p className="text-xl text-black">Your Score: {score}</p>
+        <p className="text-xl text-black">High Score: {highScore}</p>
+        {isNewHighScore && (
+          <p className="text-2xl font-bold text-green-600 animate-pulse">
+            🎉 New High Score!
+          </p>
+        )}
+        <button
+          onClick={restartGame}
+          className="mt-4 px-6 py-3 bg-red-600 text-white rounded-md text-lg"
+        >
+          Close
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white relative">
+      <div className="absolute top-4 left-4 text-lg font-bold text-black">
+        Score: {score}
+      </div>
+
       <h1 className="text-3xl font-bold text-black">🎨ROSACO</h1>
       <p className="text-black text-xl">{message}</p>
 
@@ -160,15 +272,6 @@ export const App = () => {
       </div>
 
       <p className="text-black mt-4 text-lg">Round: {round}</p>
-
-      {gameOver && (
-        <button
-          onClick={restartGame}
-          className="mt-4 px-6 py-3 bg-red-600 text-white rounded-md text-lg"
-        >
-          Restart Game
-        </button>
-      )}
     </div>
   );
 };
