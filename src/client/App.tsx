@@ -45,6 +45,50 @@ const playErrorSound = () => {
   oscillator.stop(audioCtx.currentTime + 0.6);
 };
 
+// 🎯 Roast messages pool
+const ROAST_MESSAGES: string[] = [
+  "Wow… failed already? Even goldfish have better memory.🐟",
+  "Round over? Your brain just rage-quit.🤯",
+  "That was so short even TikTok wouldn’t accept it.📱",
+  "Your memory buffer overflowed faster than my patience.⚡",
+  "You play like your brain is running on Windows 95.💾",
+  "Forgot that already? Alzheimer’s speedrun champion!🏆",
+  "If memory was money, you’d be broke.💸",
+  "Congratulations, you officially outsmarted a potato.🥔",
+  "I’ve seen squirrels stash nuts better than you stash patterns.🐿️",
+  "Bruh… Simon says ‘uninstall yourself.’💀",
+  "Your brain’s RAM? More like ROM: Read-ONLY Mistakes.🖥️",
+  "Was that a memory lapse or a full system crash?🔥",
+  "Even copy-paste requires more effort.📋",
+  "Your memory is so bad, I bet you forgot your own high score.🤡",
+  "Next time try writing it on your hand.✍️",
+  "Neural network? More like neural *notwork*.🤖",
+  "Memory leak detected. Please restart player.🔁",
+  "Don’t worry, failing early builds character… right?😬",
+  "You couldn’t remember 3 colors? Oof.🌈",
+  "That was so fast, I thought this was a demo version.🎮",
+  "Your short-term memory is shorter than a Vine.📹",
+  "Bruh, even my calculator has more memory.🧮",
+  "Did your brain just rage quit?😤",
+  "That was like a speedrun of disappointment.🏃‍♂️💨",
+  "I’ve seen AI chatbots do better.🤖",
+  "If forgetting was an Olympic sport, you’d take gold.🥇",
+  "Your neurons called… they’re on strike.🚧",
+  "Do you practice forgetting or does it just come naturally?🤔",
+  "Legend says you’re still loading…⏳",
+  "Bro, even ‘Baby Shark’ has more complexity.🦈",
+  "That loss was sponsored by BrainLag™.🧠🐌",
+  "Your memory is like a Snapchat… gone in 2 seconds.👻",
+  "Did you seriously just choke on *round one*?😭",
+  "Your recall ability just rage quit.🛑",
+  "This wasn’t memory training, this was memory deleting.❌",
+  "You lost so fast, I thought my code had a bug.🐞",
+  "Don’t worry, we’ll send flowers to your memory’s funeral.⚰️",
+  "That was tragic… but at least entertaining.🍿",
+  "Somewhere out there, a goldfish is laughing at you.🐠",
+  "Your brain is like Internet Explorer: always lagging.🌐",
+];
+
 export const App = () => {
   const [sequence, setSequence] = useState<Color[]>([]);
   const [playerSequence, setPlayerSequence] = useState<Color[]>([]);
@@ -59,6 +103,7 @@ export const App = () => {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [isNewHighScore, setIsNewHighScore] = useState(false);
+  const [roastMsg, setRoastMsg] = useState<string>("");
 
   useEffect(() => {
     if (!gameStarted || playerTurn || gameOver) return;
@@ -119,6 +164,10 @@ export const App = () => {
       setGameOver(true);
       playErrorSound();
 
+      // Pick a random roast
+      const roast = ROAST_MESSAGES[Math.floor(Math.random() * ROAST_MESSAGES.length)];
+      setRoastMsg(roast);
+
       setHighScore(prev => {
         if (score > prev) {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
@@ -152,6 +201,7 @@ export const App = () => {
     setCountdown(null);
     setScore(0);
     setIsNewHighScore(false);
+    setRoastMsg("");
   };
 
   const startGame = () => {
@@ -216,7 +266,7 @@ export const App = () => {
   if (gameOver) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white">
-        <h1 className="text-3xl font-bold text-black">❌ Game Over!</h1>
+        <h1 className="text-3xl font-bold text-black">❌Game Over!</h1>
         <p className="text-xl text-black">Your Score: {score}</p>
         <p className="text-xl text-black">High Score: {highScore}</p>
         {isNewHighScore && (
@@ -224,11 +274,16 @@ export const App = () => {
             🎉 New High Score!
           </p>
         )}
+        {roastMsg && (
+          <p className="text-lg font-semibold text-red-600 italic max-w-lg text-center">
+            🔥{roastMsg}
+          </p>
+        )}
         <button
           onClick={restartGame}
           className="mt-4 px-6 py-3 bg-red-600 text-white rounded-md text-lg"
         >
-          Close
+          Restart
         </button>
       </div>
     );
