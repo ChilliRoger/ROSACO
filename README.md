@@ -21,6 +21,10 @@ Example roast messages:
 - “Your memory just crashed harder than my code on a Monday.”
 - “Did you forget the colors or the rules?”
 
+## ▶️ Demo Video
+
+Check out how ROSACO works on [YouTube](https://youtu.be/sVtx7NTBnCU)!
+
 ## 🖥️ Installation & Setup
 
 Clone the repository:
@@ -34,8 +38,6 @@ Install any required dependencies (see your package manager or `requirements.txt
 Run the game:
 - For web: Open `index.html` in your browser.
 - For desktop: Run the main executable/script.
-
-
 
 ## 📄 License
 
