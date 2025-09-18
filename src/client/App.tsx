@@ -114,7 +114,7 @@ export const App = () => {
     const currentIndex = newPlayerSeq.length - 1;
 
     if (newPlayerSeq[currentIndex] !== sequence[currentIndex]) {
-      setMessage(`❌ Game Over! Final Score: ${score}`);
+      setMessage(`❌Game Over! Final Score: ${score}`);
       setPlayerTurn(false);
       setGameOver(true);
       playErrorSound();
@@ -195,21 +195,20 @@ export const App = () => {
         )}
 
         {showGuide && (
-  <div className="guide-overlay">
-    <div className="guide-box">
-      <h2>How to Play</h2>
-      <ul>
-        <li>👀 Watch the flashing color sequence.</li>
-        <li>🎯 Repeat the sequence by tapping the colors in order.</li>
-        <li>✅ Each correct tap gives +1 point.</li>
-        <li>⚡ Rounds get harder: Easy → Medium → Hard.</li>
-        <li>❌ One mistake ends the game.</li>
-      </ul>
-      <button onClick={() => setShowGuide(false)}>Close</button>
-    </div>
-  </div>
-)}
-
+          <div className="guide-overlay">
+            <div className="guide-box">
+              <h2>How to Play</h2>
+              <ul>
+                <li>👀 Watch the flashing color sequence.</li>
+                <li>🎯 Repeat the sequence by tapping the colors in order.</li>
+                <li>✅ Each correct tap gives +1 point.</li>
+                <li>⚡ Rounds get harder: Easy → Medium → Hard.</li>
+                <li>❌ One mistake ends the game.</li>
+              </ul>
+              <button onClick={() => setShowGuide(false)}>Close</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -237,8 +236,10 @@ export const App = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-6 bg-white relative">
-      <div className="absolute top-4 left-4 text-lg font-bold text-black">
-        Score: {score}
+      {/* Score & High Score Row */}
+      <div className="absolute top-4 left-0 w-full flex justify-between px-6 text-lg font-bold text-black">
+        <span>Score: {score}</span>
+        <span>High Score: {highScore}</span>
       </div>
 
       <h1 className="text-3xl font-bold text-black">🎨ROSACO</h1>
